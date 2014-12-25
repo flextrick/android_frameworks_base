@@ -2145,6 +2145,15 @@ public final class Settings {
          */
         public static final String STATUS_BAR_BRIGHTNESS_CONTROL = "status_bar_brightness_control";
 
+
+         /**
+         * Defines the global heads up notification decay
+         *
+         * @hide
+         */
+        public static final String HEADS_UP_NOTIFCATION_DECAY = "heads_up_notification_decay";
+
+ 	
         /**
          * Whether to show the IME switcher in the status bar
          * @hide
@@ -3568,6 +3577,13 @@ public final class Settings {
          * @hide
          */
         public static final String STATUSBAR_COMPONENT = "statusbar_component";
+
+        /**
+         * Defines the global heads up notification decay
+         *
+         * @hide
+         */
+        public static final String HEADS_UP_NOTIFCATION_DECAY = "heads_up_notification_decay";
 
         /**
          * Settings to backup. This is here so that it's in the same place as the settings
