@@ -353,6 +353,9 @@
             </intent-filter>
         </activity>
 
+	<activity android:name="com.android.systemui.Transparent"
+            android:theme="@android:style/Theme.Translucent.NoTitleBar" />
+
         <!-- a gallery of delicious treats -->
         <service
             android:name=".DessertCaseDream"

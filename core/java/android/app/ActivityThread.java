@@ -3015,12 +3015,7 @@ public final class ActivityThread {
                 r.state = null;
                 r.persistentState = null;
             } catch (Exception e) {
-                if (!mInstrumentation.onException(r.activity, e)) {
-                    throw new RuntimeException(
-                        "Unable to resume activity "
-                        + r.intent.getComponent().toShortString()
-                        + ": " + e.toString(), e);
-                }
+                // unable to resume activity, do nothing here
             }
         }
         return r;

@@ -261,6 +261,30 @@ easier.
         <item name="windowFixedHeightMinor">@dimen/dialog_fixed_height_minor</item>
     </style>
 
+    <style name="Theme.DeviceDefault.FloatingWindow">
+        <item name="android:windowIsFloating">false</item>
+        <item name="android:windowIsTranslucent">true</item>
+        <item name="android:windowFrame">@null</item>
+        <item name="android:windowContentOverlay">@null</item>
+        <item name="android:windowAnimationStyle">@android:style/Animation.Dialog</item>
+        <item name="android:windowActionModeOverlay">true</item>
+        <item name="android:windowCloseOnTouchOutside">true</item>
+        <item name="android:windowFullscreen">false</item>
+        <item name="android:windowSoftInputMode">stateAlwaysHidden|adjustPan</item>
+    </style>
+ 
+    <style name="Theme.DeviceDefault.FloatingWindowLight" parent="Theme.Holo.Light.Dialog">
+        <item name="android:windowIsFloating">false</item>
+        <item name="android:windowIsTranslucent">true</item>
+        <item name="android:windowFrame">@null</item>
+        <item name="android:windowContentOverlay">@null</item>
+        <item name="android:windowAnimationStyle">@android:style/Animation.Dialog</item>
+        <item name="android:windowActionModeOverlay">true</item>
+        <item name="android:windowCloseOnTouchOutside">true</item>
+        <item name="android:windowFullscreen">false</item>
+        <item name="android:windowSoftInputMode">stateAlwaysHidden|adjustPan</item>
+     </style>
+
     <!-- DeviceDefault theme for a window that will be displayed either full-screen on smaller
     screens (small, normal) or as a dialog on larger screens (large, xlarge). -->
     <style name="Theme.DeviceDefault.DialogWhenLarge" parent="Theme.Material.DialogWhenLarge"  />

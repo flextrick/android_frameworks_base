@@ -3576,6 +3576,20 @@ public final class Settings {
          */
         public static final String HEADS_UP_NOTIFCATION_DECAY = "heads_up_notification_decay";
 
+	    /**
+         * Defines the global heads up floating flag
+         *
+         * @hide
+         */
+	    public static final String HEADS_UP_FLOATING = "heads_up_floating";
+
+        /**
+         * Defines the global heads up floating flag on long click
+         *
+         * @hide
+         */
+        public static final String NOTIFICATION_LONG_CLICK_FLOATING = "heads_up_floating_long_click";
+
         /**
          * Whether to use the custom status bar header or not
          * @hide

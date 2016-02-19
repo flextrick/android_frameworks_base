@@ -287,8 +287,9 @@ public class NotificationManagerService extends SystemService {
     private Archive mArchive;
 
     // Notification control database. For now just contains disabled packages.
-    private AtomicFile mPolicyFile;
+    private AtomicFile mPolicyFile, mFloatingWindowPolicyFile;
     private HashSet<String> mBlockedPackages = new HashSet<String>();
+    private HashSet<String> mFloatingWindowWhitelist = new HashSet<String>();
 
     private static final int DB_VERSION = 1;
 
@@ -296,6 +297,7 @@ public class NotificationManagerService extends SystemService {
     private static final String ATTR_VERSION = "version";
 
     private static final String TAG_BLOCKED_PKGS = "blocked-packages";
+    private static final String TAG_ALLOWED_PKGS = "allowed-packages";
     private static final String TAG_PACKAGE = "package";
     private static final String ATTR_NAME = "name";
 
@@ -428,13 +430,13 @@ public class NotificationManagerService extends SystemService {
 
     }
 
-    private void loadPolicyFile() {
-        synchronized(mPolicyFile) {
-            mBlockedPackages.clear();
+    private void loadPolicyFile(HashSet<String> array, AtomicFile file) {
+        synchronized(file) {
+            array.clear();
 
             FileInputStream infile = null;
             try {
-                infile = mPolicyFile.openRead();
+                infile = file.openRead();
                 final XmlPullParser parser = Xml.newPullParser();
                 parser.setInput(infile, null);
 
@@ -451,7 +453,7 @@ public class NotificationManagerService extends SystemService {
                             while ((type = parser.next()) != END_DOCUMENT) {
                                 tag = parser.getName();
                                 if (TAG_PACKAGE.equals(tag)) {
-                                    mBlockedPackages.add(
+                                    array.add(
                                             parser.getAttributeValue(null, ATTR_NAME));
                                 } else if (TAG_BLOCKED_PKGS.equals(tag) && type == END_TAG) {
                                     break;
@@ -481,12 +483,12 @@ public class NotificationManagerService extends SystemService {
         mHandler.sendEmptyMessage(MESSAGE_SAVE_POLICY_FILE);
     }
 
-    private void handleSavePolicyFile() {
+    private void handleSavePolicyFile(HashSet<String> array, AtomicFile file){
         Slog.d(TAG, "handleSavePolicyFile");
-        synchronized (mPolicyFile) {
+        synchronized (file) {
             final FileOutputStream stream;
             try {
-                stream = mPolicyFile.startWrite();
+                stream = file.startWrite();
             } catch (IOException e) {
                 Slog.w(TAG, "Failed to save policy file", e);
                 return;
@@ -502,12 +504,97 @@ public class NotificationManagerService extends SystemService {
                 mRankingHelper.writeXml(out);
                 out.endTag(null, TAG_BODY);
                 out.endDocument();
-                mPolicyFile.finishWrite(stream);
+                file.finishWrite(stream);
             } catch (IOException e) {
                 Slog.w(TAG, "Failed to save policy file, restoring backup", e);
-                mPolicyFile.failWrite(stream);
+                file.failWrite(stream);
             }
         }
+    }
+
+    private synchronized void writeFloatingWindowBlockDb() {
+        FileOutputStream outfile = null;
+        try {
+            outfile = mFloatingWindowPolicyFile.startWrite();
+
+            XmlSerializer out = new FastXmlSerializer();
+            out.setOutput(outfile, "utf-8");
+
+            out.startDocument(null, true);
+
+            out.startTag(null, TAG_BODY); {
+                out.attribute(null, ATTR_VERSION, String.valueOf(DB_VERSION));
+
+                out.startTag(null, TAG_ALLOWED_PKGS); {
+                    for (String allowedPkg : mFloatingWindowWhitelist) {
+                        out.startTag(null, TAG_PACKAGE); {
+                            out.attribute(null, ATTR_NAME, allowedPkg);
+                        } out.endTag(null, TAG_PACKAGE);
+                    }
+                } out.endTag(null, TAG_ALLOWED_PKGS);
+
+            } out.endTag(null, TAG_BODY);
+
+            out.endDocument();
+
+            mFloatingWindowPolicyFile.finishWrite(outfile);
+        } catch (IOException e) {
+            if (outfile != null) {
+                mFloatingWindowPolicyFile.failWrite(outfile);
+            }
+        }
+    }
+
+    private synchronized void loadFloatingWindowBlockDb() {
+        if (mFloatingWindowPolicyFile == null) {
+            mFloatingWindowPolicyFile = new AtomicFile(new File("/data/system", "floating_window_policy.xml"));
+            mFloatingWindowWhitelist.clear();
+            readPolicy(mFloatingWindowPolicyFile, TAG_ALLOWED_PKGS, mFloatingWindowWhitelist);
+        }
+    }
+
+    private int readPolicy(AtomicFile file, String lookUpTag, HashSet<String> db) {
+        return readPolicy(file, lookUpTag, db, null, 0);
+    }
+
+    private int readPolicy(AtomicFile file, String lookUpTag, HashSet<String> db, String resultTag, int defaultResult) {
+        int result = defaultResult;
+        FileInputStream infile = null;
+        try {
+            infile = file.openRead();
+            final XmlPullParser parser = Xml.newPullParser();
+            parser.setInput(infile, null);
+
+            int type;
+            String tag;
+            int version = DB_VERSION;
+            while ((type = parser.next()) != END_DOCUMENT) {
+                tag = parser.getName();
+                if (type == START_TAG) {
+                    if (TAG_BODY.equals(tag)) {
+                        version = Integer.parseInt(parser.getAttributeValue(null, ATTR_VERSION));
+                        if (resultTag != null) {
+                            String attribValue = parser.getAttributeValue(null, resultTag);
+                            result = Integer.parseInt((attribValue != null ? attribValue : "0"));
+                        }
+                    } else if (lookUpTag.equals(tag)) {
+                        while ((type = parser.next()) != END_DOCUMENT) {
+                            tag = parser.getName();
+                            if (TAG_PACKAGE.equals(tag)) {
+                                db.add(parser.getAttributeValue(null, ATTR_NAME));
+                            } else if (lookUpTag.equals(tag) && type == END_TAG) {
+                                break;
+                            }
+                        }
+                    }
+                }
+            }
+        } catch (Exception e) {
+            // Unable to read
+        } finally {
+            IoUtils.closeQuietly(infile);
+        }
+        return result;
     }
 
     /** Use this when you actually want to post a notification or toast.
@@ -1150,6 +1237,11 @@ public class NotificationManagerService extends SystemService {
         });
         final File systemDir = new File(Environment.getDataDirectory(), "system");
         mPolicyFile = new AtomicFile(new File(systemDir, "notification_policy.xml"));
+        mFloatingWindowPolicyFile = new AtomicFile(new File(systemDir, "floating_window_whitelist_policy.xml"));
+
+        loadPolicyFile(mBlockedPackages, mPolicyFile);
+        loadFloatingWindowBlockDb();
+
         mUsageStats = new NotificationUsageStats(getContext());
 
         importOldBlockDb();
@@ -1256,7 +1348,7 @@ public class NotificationManagerService extends SystemService {
      * Read the old XML-based app block database and import those blockages into the AppOps system.
      */
     private void importOldBlockDb() {
-        loadPolicyFile();
+        loadPolicyFile(mBlockedPackages, mPolicyFile);
 
         PackageManager pm = getContext().getPackageManager();
         for (String pkg : mBlockedPackages) {
@@ -1477,6 +1569,21 @@ public class NotificationManagerService extends SystemService {
             return (mAppOps.checkOpNoThrow(AppOpsManager.OP_POST_NOTIFICATION, uid, pkg)
                     == AppOpsManager.MODE_ALLOWED);
         }
+
+        @Override
+	public void setFloatingWindowWhitelistStatus(String pkg, boolean whitelisted) {
+		if (!whitelisted) {
+		    mFloatingWindowWhitelist.remove(pkg);
+		} else {
+		    mFloatingWindowWhitelist.add(pkg);
+		}
+		writeFloatingWindowBlockDb();
+	}
+
+	@Override
+	public boolean isPackageFloatingWindowWhitelisted(String pkg) {
+		return mFloatingWindowWhitelist.contains(pkg);
+	}
 
         @Override
         public void setPackagePriority(String pkg, int uid, int priority) {
@@ -2742,7 +2849,7 @@ public class NotificationManagerService extends SystemService {
                     handleTimeout((ToastRecord)msg.obj);
                     break;
                 case MESSAGE_SAVE_POLICY_FILE:
-                    handleSavePolicyFile();
+                    handleSavePolicyFile(mBlockedPackages, mPolicyFile);
                     break;
                 case MESSAGE_SEND_RANKING_UPDATE:
                     handleSendRankingUpdate();

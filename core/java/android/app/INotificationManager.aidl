@@ -54,6 +54,9 @@ interface INotificationManager
     void setShowNotificationForPackageOnKeyguard(String pkg, int uid, int status);
     int getShowNotificationForPackageOnKeyguard(String pkg, int uid);
 
+    void setFloatingWindowWhitelistStatus(String pkg, boolean whitelisted);
+    boolean isPackageFloatingWindowWhitelisted(String pkg);
+
     // TODO: Remove this when callers have been migrated to the equivalent
     // INotificationListener method.
     StatusBarNotification[] getActiveNotifications(String callingPkg);
