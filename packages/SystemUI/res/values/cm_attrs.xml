@@ -34,5 +34,7 @@
     <declare-styleable name="BatteryMeterViewDrawable">
         <attr name="android:gravity"/>
     </declare-styleable>
+
+
 </resources>
 

@@ -2473,6 +2473,7 @@ public final class Settings {
 
         private static final Validator SCREEN_BRIGHTNESS_MODE_VALIDATOR = sBooleanValidator;
 
+
         /**
          * Adjustment to auto-brightness to make it generally more (>0.0 <1.0)
          * or less (<0.0 >-1.0) bright.
@@ -2517,6 +2518,18 @@ public final class Settings {
          * @hide
          */
         public static final String BUTTON_BACKLIGHT_TIMEOUT = "button_backlight_timeout";
+
+	/**
+         * Define if screenshot crop & share is active
+	 * @hide
+         */
+        public static final String SCREENSHOT_CROP_AND_SHARE = "screenshot_crop_and_share";
+
+	/**
+         * Define the crop behavior of screenshot crop & share
+	 * @hide
+         */
+        public static final String SCREENSHOT_CROP_BEHAVIOR = "screenshot_crop_behavior";
 
         /**
          * Control whether the process CPU usage meter should be shown.
